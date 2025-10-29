@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>烟花秀</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background: radial-gradient(
+          ellipse at bottom,
+          #1b2735 0%,
+          #090a0f 100%
+        );
+        overflow: hidden;
+        font-family: "KaiTi", "楷体", "STKaiti", "华文楷体", serif;
+        height: 100vh;
+        position: relative;
+      }
+
+      /* 开场页面 */
+      #startScreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        background: radial-gradient(
+          ellipse at bottom,
+          #1b2735 0%,
+          #090a0f 100%
+        );
+        transition: opacity 1s ease-out;
+      }
+
+      #startScreen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      #startScreen h1 {
+        font-size: 2.5rem;
+        color: #fff;
+        margin-bottom: 30px;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        animation: glow 2s ease-in-out infinite;
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        50% {
+          text-shadow: 0 0 30px rgba(255, 255, 255, 0.8),
+            0 0 40px rgba(255, 182, 193, 0.6);
+        }
+      }
+
+      #startButton {
+        padding: 20px 50px;
+        font-size: 1.5rem;
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 25px rgba(255, 107, 107, 0.5);
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      #startButton:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 12px 35px rgba(255, 107, 107, 0.7);
+      }
+
+      #startScreen p {
+        margin-top: 30px;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+      }
+
+      canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .story-text-wrap {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 20;
+        pointer-events: none;
+        width: 90%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      /* 故事文字显示 */
+      #storyText {
+        font-size: 2rem;
+        font-weight: normal;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
+          0 0 20px rgba(135, 206, 250, 0.6), 0 0 30px rgba(135, 206, 250, 0.4),
+          2px 2px 4px rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        text-align: left;
+        line-height: 1.8;
+        letter-spacing: 0.01em;
+        transition: opacity 1s ease-in-out;
+        white-space: pre-line;
+        font-family: "KaiTi", "楷体", "STKaiti", "华文楷体", serif;
+      }
+
+      #storyText.show {
+        opacity: 1;
+      }
+
+      #finalMessage {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3.5rem;
+        font-weight: bold;
+        color: transparent;
+        background: linear-gradient(
+          45deg,
+          #ff8c00,
+          #ff6347,
+          #ffa500,
+          #ff7f00,
+          #ffb347,
+          #ff9500
+        );
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 140, 0, 1),
+          0 0 60px rgba(255, 165, 0, 0.9), 0 0 90px rgba(255, 99, 71, 0.7);
+        opacity: 0;
+        animation: gradientShift 3s ease-in-out infinite;
+        letter-spacing: 0.1em;
+        z-index: 20;
+        text-align: center;
+        line-height: 1.3;
+        pointer-events: none;
+        display: none;
+      }
+
+      @keyframes gradientShift {
+        0%,
+        100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+      }
+
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.8);
+        }
+        100% {
+          opacity: 1;
+          transform: translate(-50%, -50%) scale(1);
+        }
+      }
+
+      #controls {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: calc(100% - 40px);
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+
+      #controls.show {
+        opacity: 1;
+      }
+
+      button {
+        padding: 12px 30px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .music-btn {
+        background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        min-width: 120px;
+      }
+
+      .music-btn:hover {
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+      }
+
+      #musicIndicator {
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      #musicIndicator.show {
+        opacity: 1;
+      }
+
+      #soundToggle {
+        cursor: pointer;
+        font-size: 1.2rem;
+        transition: transform 0.2s ease;
+        user-select: none;
+      }
+
+      #soundToggle:hover {
+        transform: scale(1.2);
+      }
+
+      #soundToggle:active {
+        transform: scale(0.9);
+      }
+
+      /* 移动端适配 */
+      @media (max-width: 768px) {
+        #storyText {
+          font-size: 1.3rem;
+          line-height: 1.6;
+          padding: 0 20px;
+        }
+        #startScreen h1 {
+          font-size: 1.8rem;
+        }
+        #startButton {
+          font-size: 1.2rem;
+          padding: 15px 40px;
+        }
+        button {
+          padding: 10px 20px;
+          font-size: 0.9rem;
+        }
+        #musicIndicator {
+          top: 15px;
+          right: 15px;
+          font-size: 0.85rem;
+          padding: 8px 15px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        #storyText {
+          font-size: 1.5rem;
+          line-height: 1.6;
+        }
+        #startScreen h1 {
+          font-size: 1.5rem;
+        }
+        #startButton {
+          font-size: 1rem;
+          padding: 12px 30px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 开场页面 -->
+    <div id="startScreen">
+      <h1>✨ 准备好了吗😊 ✨</h1>
+      <button id="startButton">🎆 点亮星空 🎆</button>
+      <p>💝 建议佩戴耳机获得最佳体验 💝</p>
+    </div>
+
+    <canvas id="canvas"></canvas>
+    <div class="story-text-wrap">
+      <div id="storyText"></div>
+    </div>
+    <div id="finalMessage"></div>
+    <div id="musicIndicator">
+      <span id="soundToggle">🔊</span>
+      <span id="musicName">🏰 天空之城</span>
+    </div>
+
+    <div id="controls">
+      <button id="replayBtn">🔄 重新播放</button>
+      <button id="musicBtn" class="music-btn">🎵 切换音乐</button>
+    </div>
+
+    <script>
+      // 音乐列表
+      const musicList = [
+        { name: "天空之城", file: "天空之城.mp3", icon: "🏰" },
+        { name: "乌兰巴托的夜", file: "乌兰巴托的夜.m4a", icon: "🌙" },
+        { name: "Marry You", file: "Marry_You.mp3", icon: "💍" },
+        { name: "七里香", file: "七里香.mp3", icon: "🌸" },
+        { name: "愿你", file: "愿你.mp3", icon: "💫" },
+        { name: "故乡的原风景", file: "故乡的原风景.mp3", icon: "🏞️" },
+        { name: "Against the Tide", file: "Against_the_Tide.mp3", icon: "🌊" },
+      ];
+
+      let currentMusicIndex = 0;
+      let audio = new Audio();
+      let isPlaying = false;
+      let isMuted = false;
+
+      // 预加载所有音乐文件
+      const audioCache = {};
+      function preloadAudio() {
+        musicList.forEach((music, index) => {
+          const audioElement = new Audio();
+          audioElement.src = music.file;
+          audioElement.preload = "auto";
+          audioCache[index] = audioElement;
+        });
+      }
+
+      // 页面加载时预加载音频
+      window.addEventListener("load", preloadAudio);
+
+      // 故事文字内容（8段，严格按照排版）
+      const fireworkTexts = [
+        "🌌 从小听老人说，\n天上住着神仙，",
+        "他们用星星的光，\n记录每一个愿望。",
+        "☁️ 后来我才知道，\n星星不会回答，",
+        "但有些人出现时，\n夜空就亮了。",
+        "💫 有人说，烟花短暂，\n却最接近永恒。",
+        "因为那一瞬间，\n我们都相信了光。",
+        "🌙 今晚这片天空的光，\n想告诉你——",
+        "愿你所有真诚与勇气，\n都被世界温柔相待。",
+      ];
+
+      let currentTextIndex = 0;
+      let textDisplayTimeout = null;
+
+      // Canvas 设置
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initStars();
+      });
+
+      // 全局变量
+      let fireworks = [];
+      let stars = [];
+      let shootingStars = [];
+      let animationId = null;
+      let hasStarted = false;
+
+      // 星星类
+      class Star {
+        constructor() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 2 + 0.5;
+          this.brightness = Math.random() * 0.5 + 0.5;
+          this.twinkleSpeed = Math.random() * 0.02 + 0.01;
+          this.twinklePhase = Math.random() * Math.PI * 2;
+        }
+
+        update() {
+          this.twinklePhase += this.twinkleSpeed;
+        }
+
+        draw() {
+          const twinkle = ((Math.sin(this.twinklePhase) + 1) / 2) * 0.5 + 0.5;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 255, 255, ${this.brightness * twinkle})`;
+          ctx.fill();
+        }
+      }
+
+      // 流星类
+      class ShootingStar {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = 0;
+          this.length = Math.random() * 80 + 60;
+          this.speed = Math.random() * 10 + 15;
+          this.size = Math.random() * 2 + 1;
+          this.angle = Math.PI / 4 + (Math.random() - 0.5) * 0.5;
+          this.alpha = 1;
+          this.fadeSpeed = Math.random() * 0.02 + 0.02;
+        }
+
+        update() {
+          this.x += Math.cos(this.angle) * this.speed;
+          this.y += Math.sin(this.angle) * this.speed;
+          this.alpha -= this.fadeSpeed;
+        }
+
+        draw() {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+
+          const gradient = ctx.createLinearGradient(0, 0, -this.length, 0);
+          gradient.addColorStop(0, `rgba(255, 255, 255, ${this.alpha})`);
+          gradient.addColorStop(
+            0.5,
+            `rgba(200, 200, 255, ${this.alpha * 0.6})`
+          );
+          gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = this.size;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(-this.length, 0);
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        isDead() {
+          return this.alpha <= 0 || this.y > canvas.height;
+        }
+      }
+
+      // 烟花粒子类
+      class Particle {
+        constructor(x, y, vx, vy, color, size, life, parent = null) {
+          this.x = x;
+          this.y = y;
+          this.vx = vx;
+          this.vy = vy;
+          this.color = color;
+          this.size = size;
+          this.life = life;
+          this.maxLife = life;
+          this.gravity = 0.08;
+          this.parent = parent;
+          this.glowIntensity = Math.random() * 0.5 + 0.5;
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.vy += this.gravity;
+
+          if (this.parent && this.parent.isFinale) {
+            this.vx *= 0.99;
+            this.vy *= 0.99;
+            this.size *= 0.995;
+          } else {
+            this.vx *= 0.995;
+            this.vy *= 0.995;
+            this.size *= 0.998;
+          }
+
+          this.life--;
+        }
+
+        draw() {
+          const alpha = this.life / this.maxLife;
+          if (alpha <= 0) return;
+
+          ctx.save();
+          ctx.globalAlpha = alpha;
+
+          if (this.size > 2) {
+            ctx.shadowBlur = 10 * this.glowIntensity;
+            ctx.shadowColor = this.color;
+          }
+
+          ctx.fillStyle = this.color;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (this.size > 2.5) {
+            ctx.globalAlpha = alpha * 0.8;
+            ctx.fillStyle = "white";
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.restore();
+        }
+      }
+
+      // 烟花类
+      class Firework {
+        constructor(sx, sy, tx, ty) {
+          this.x = sx;
+          this.y = sy;
+          this.sx = sx;
+          this.sy = sy;
+          this.tx = tx;
+          this.ty = ty;
+          this.distanceToTarget = this.calculateDistance(sx, sy, tx, ty);
+          this.distanceTraveled = 0;
+          this.coordinates = [];
+          this.coordinateCount = 5;
+          while (this.coordinateCount--) {
+            this.coordinates.push([this.x, this.y]);
+          }
+          this.angle = Math.atan2(ty - sy, tx - sx);
+          this.speed = 2.5;
+          this.acceleration = 1.05;
+          this.brightness = Math.random() * 30 + 70;
+          this.targetRadius = 1;
+          this.exploded = false;
+          this.particles = [];
+          this.isFinale = false;
+        }
+
+        calculateDistance(x1, y1, x2, y2) {
+          return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        }
+
+        update() {
+          if (!this.exploded) {
+            this.coordinates.pop();
+            this.coordinates.unshift([this.x, this.y]);
+
+            if (this.targetRadius < 8) {
+              this.targetRadius += 0.3;
+            } else {
+              this.targetRadius = 1;
+            }
+
+            this.speed *= this.acceleration;
+            const vx = Math.cos(this.angle) * this.speed;
+            const vy = Math.sin(this.angle) * this.speed;
+
+            this.distanceTraveled = this.calculateDistance(
+              this.sx,
+              this.sy,
+              this.x + vx,
+              this.y + vy
+            );
+
+            if (this.distanceTraveled >= this.distanceToTarget) {
+              this.explode();
+            } else {
+              this.x += vx;
+              this.y += vy;
+            }
+          } else {
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+              this.particles[i].update();
+              if (this.particles[i].life <= 0) {
+                this.particles.splice(i, 1);
+              }
+            }
+          }
+        }
+
+        explode() {
+          this.exploded = true;
+
+          // 爱心形状烟花
+          if (this.shape === 'heart') {
+            const particleCount = 80;
+            const hue = 0; // 红色/粉色
+
+            for (let i = 0; i < particleCount; i++) {
+              const t = (i / particleCount) * Math.PI * 2;
+              // 爱心参数方程
+              const x = 16 * Math.pow(Math.sin(t), 3);
+              const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+              
+              const scale = 0.3;
+              const vx = x * scale;
+              const vy = y * scale;
+              
+              const color = `hsl(${hue + Math.random() * 30}, 100%, ${Math.random() * 20 + 60}%)`;
+              const size = Math.random() * 3 + 2;
+              const life = Math.random() * 40 + 60;
+
+              const particle = new Particle(
+                this.tx,
+                this.ty,
+                vx,
+                vy,
+                color,
+                size,
+                life,
+                this
+              );
+              particle.gravity = 0.05;
+              this.particles.push(particle);
+            }
+          }
+          // 星星形状烟花
+          else if (this.shape === 'star') {
+            const particleCount = 100;
+            const hue = 50; // 金黄色
+
+            // 五角星的5个角
+            for (let i = 0; i < particleCount; i++) {
+              const angle = (i / particleCount) * Math.PI * 2;
+              const starAngle = Math.floor(angle / (Math.PI * 2 / 5)) * (Math.PI * 2 / 5);
+              const nextStarAngle = starAngle + (Math.PI * 2 / 5);
+              
+              // 在五角星的边缘分布
+              const t = (angle - starAngle) / (Math.PI * 2 / 5);
+              const outerRadius = 4;
+              const innerRadius = 1.5;
+              
+              let radius;
+              if (t < 0.5) {
+                radius = outerRadius;
+              } else {
+                radius = innerRadius + (outerRadius - innerRadius) * Math.cos((t - 0.5) * Math.PI * 2);
+              }
+              
+              const vx = Math.cos(angle) * radius;
+              const vy = Math.sin(angle) * radius;
+              
+              const color = `hsl(${hue + Math.random() * 30}, 100%, ${Math.random() * 20 + 70}%)`;
+              const size = Math.random() * 3 + 2;
+              const life = Math.random() * 40 + 60;
+
+              const particle = new Particle(
+                this.tx,
+                this.ty,
+                vx,
+                vy,
+                color,
+                size,
+                life,
+                this
+              );
+              particle.gravity = 0.05;
+              this.particles.push(particle);
+            }
+          }
+          // 普通烟花
+          else if (this.isFinale) {
+            const particleCount = 30;
+            const hue = Math.random() * 360;
+
+            for (let i = 0; i < particleCount; i++) {
+              const angle = ((Math.PI * 2) / particleCount) * i;
+              const velocity = Math.random() * 4 + 2;
+              const vx = Math.cos(angle) * velocity;
+              const vy = Math.sin(angle) * velocity;
+              const color = `hsl(${hue}, 100%, ${Math.random() * 20 + 60}%)`;
+              const size = Math.random() * 2 + 1;
+              const life = Math.random() * 30 + 45;
+
+              const particle = new Particle(
+                this.tx,
+                this.ty,
+                vx,
+                vy,
+                color,
+                size,
+                life,
+                this
+              );
+              particle.gravity = 0.06;
+              this.particles.push(particle);
+            }
+          } else {
+            const particleCount = 45;
+            const hue = Math.random() * 360;
+
+            for (let i = 0; i < particleCount; i++) {
+              const angle = ((Math.PI * 2) / particleCount) * i;
+              const velocity = Math.random() * 6 + 3.5;
+              const vx = Math.cos(angle) * velocity;
+              const vy = Math.sin(angle) * velocity;
+              const color = `hsl(${hue}, 100%, ${Math.random() * 30 + 50}%)`;
+              const size = Math.random() * 3 + 1.5;
+              const life = Math.random() * 40 + 55;
+
+              this.particles.push(
+                new Particle(this.tx, this.ty, vx, vy, color, size, life, this)
+              );
+            }
+
+            for (let i = 0; i < 15; i++) {
+              const angle = Math.random() * Math.PI * 2;
+              const velocity = Math.random() * 3 + 1;
+              const vx = Math.cos(angle) * velocity;
+              const vy = Math.sin(angle) * velocity;
+              const color = `hsl(${hue + 30}, 100%, 80%)`;
+              const size = Math.random() * 2 + 1;
+              const life = Math.random() * 20 + 35;
+
+              this.particles.push(
+                new Particle(this.tx, this.ty, vx, vy, color, size, life, this)
+              );
+            }
+          }
+        }
+
+        draw() {
+          if (!this.exploded) {
+            ctx.save();
+
+            const gradient = ctx.createLinearGradient(
+              this.coordinates[this.coordinates.length - 1][0],
+              this.coordinates[this.coordinates.length - 1][1],
+              this.x,
+              this.y
+            );
+            gradient.addColorStop(0, `hsl(${Math.random() * 360}, 100%, 30%)`);
+            gradient.addColorStop(
+              1,
+              `hsl(${Math.random() * 360}, 100%, ${this.brightness}%)`
+            );
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = `hsl(${Math.random() * 360}, 100%, ${
+              this.brightness
+            }%)`;
+
+            ctx.beginPath();
+            ctx.moveTo(
+              this.coordinates[this.coordinates.length - 1][0],
+              this.coordinates[this.coordinates.length - 1][1]
+            );
+            ctx.lineTo(this.x, this.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.targetRadius, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${Math.random() * 360}, 100%, ${
+              this.brightness
+            }%)`;
+            ctx.shadowBlur = 15;
+            ctx.fill();
+            ctx.restore();
+          } else {
+            for (let particle of this.particles) {
+              particle.draw();
+            }
+          }
+        }
+
+        isDead() {
+          return this.exploded && this.particles.length === 0;
+        }
+      }
+
+      // 初始化星空
+      function initStars() {
+        stars = [];
+        for (let i = 0; i < 200; i++) {
+          stars.push(new Star());
+        }
+      }
+
+      // 音乐控制
+      function playMusic() {
+        if (isMuted) return;
+
+        // 使用预加载的音频
+        if (audioCache[currentMusicIndex]) {
+          audio = audioCache[currentMusicIndex];
+        } else {
+          audio.src = musicList[currentMusicIndex].file;
+        }
+
+        audio.loop = true;
+        audio
+          .play()
+          .then(() => {
+            isPlaying = true;
+            updateMusicIndicator();
+          })
+          .catch((e) => {
+            console.log("音乐播放失败:", e);
+          });
+      }
+
+      function stopMusic() {
+        audio.pause();
+        audio.currentTime = 0;
+        isPlaying = false;
+      }
+
+      function switchMusic() {
+        // 先停止当前音乐
+        if (audio) {
+          audio.pause();
+          audio.currentTime = 0;
+        }
+        
+        // 切换到下一首
+        currentMusicIndex = (currentMusicIndex + 1) % musicList.length;
+        
+        // 如果不是静音状态，播放新音乐
+        if (!isMuted) {
+          playMusic();
+        } else {
+          // 即使是静音状态也更新显示
+          updateMusicIndicator();
+        }
+      }
+
+      function toggleSound() {
+        isMuted = !isMuted;
+        const soundToggle = document.getElementById("soundToggle");
+
+        if (isMuted) {
+          // 暂停音乐，不重置进度
+          audio.pause();
+          isPlaying = false;
+          soundToggle.textContent = "🔇";
+        } else {
+          // 继续播放音乐
+          audio.play().then(() => {
+            isPlaying = true;
+            soundToggle.textContent = "🔊";
+          }).catch((e) => {
+            console.log("音乐播放失败:", e);
+          });
+        }
+      }
+
+      function updateMusicIndicator() {
+        const musicName = document.getElementById("musicName");
+        const current = musicList[currentMusicIndex];
+        musicName.textContent = `${current.icon} ${current.name}`;
+        if (isPlaying && !isMuted) {
+          document.getElementById("musicIndicator").classList.add("show");
+        }
+      }
+
+      // 创建烟花
+      function createRandomFirework() {
+        const startX = Math.random() * canvas.width;
+        const startY = canvas.height;
+        const endX = Math.random() * canvas.width;
+        const endY = Math.random() * canvas.height * 0.5;
+
+        const firework = new Firework(startX, startY, endX, endY);
+        fireworks.push(firework);
+        return firework;
+      }
+
+      function createHeartFirework() {
+        const startX = Math.random() * canvas.width;
+        const startY = canvas.height;
+        const endX = Math.random() * canvas.width;
+        const endY = Math.random() * canvas.height * 0.4 + canvas.height * 0.2;
+
+        const firework = new Firework(startX, startY, endX, endY);
+        firework.shape = 'heart';
+        fireworks.push(firework);
+        return firework;
+      }
+
+      function createStarFirework() {
+        const startX = Math.random() * canvas.width;
+        const startY = canvas.height;
+        const endX = Math.random() * canvas.width;
+        const endY = Math.random() * canvas.height * 0.4 + canvas.height * 0.2;
+
+        const firework = new Firework(startX, startY, endX, endY);
+        firework.shape = 'star';
+        fireworks.push(firework);
+        return firework;
+      }
+
+      function createMultipleFireworks(count = 3) {
+        for (let i = 0; i < count; i++) {
+          setTimeout(() => createRandomFirework(), i * 150);
+        }
+      }
+
+      // 创建底部一排烟花齐射效果
+      function createBottomRowFireworks() {
+        const screenWidth = canvas.width;
+        const fireworkCount = 20;
+        const spacing = screenWidth / (fireworkCount + 1);
+
+        // 第一波
+        for (let i = 0; i < fireworkCount; i++) {
+          setTimeout(() => {
+            const startX = spacing * (i + 1);
+            const startY = canvas.height;
+            const endX = startX + (Math.random() - 0.5) * 100;
+            const endY = Math.random() * canvas.height * 0.6 + 50;
+
+            const firework = new Firework(startX, startY, endX, endY);
+            firework.isFinale = true;
+            fireworks.push(firework);
+          }, i * 60);
+        }
+
+        // 第二波
+        setTimeout(() => {
+          for (let i = 0; i < Math.floor(fireworkCount * 0.9); i++) {
+            setTimeout(() => {
+              const startX = spacing * (i + 1) + (Math.random() - 0.5) * 60;
+              const startY = canvas.height;
+              const endX = startX + (Math.random() - 0.5) * 120;
+              const endY = Math.random() * canvas.height * 0.7 + 30;
+
+              const firework = new Firework(startX, startY, endX, endY);
+              firework.isFinale = true;
+              fireworks.push(firework);
+            }, i * 50);
+          }
+        }, 900);
+
+        // 第三波
+        setTimeout(() => {
+          for (let i = 0; i < Math.floor(fireworkCount * 0.8); i++) {
+            setTimeout(() => {
+              const startX = Math.random() * screenWidth;
+              const startY = canvas.height;
+              const endX = Math.random() * screenWidth;
+              const endY = Math.random() * canvas.height * 0.5;
+
+              const firework = new Firework(startX, startY, endX, endY);
+              firework.isFinale = true;
+              fireworks.push(firework);
+            }, i * 40);
+          }
+        }, 1800);
+      }
+
+      // 显示下一个文字（普通文字，非粒子）
+      function showNextText() {
+        if (currentTextIndex < fireworkTexts.length) {
+          const storyTextElement = document.getElementById("storyText");
+
+          // 淡出当前文字
+          storyTextElement.classList.remove("show");
+
+          setTimeout(() => {
+            // 更新文字内容
+            storyTextElement.textContent = fireworkTexts[currentTextIndex];
+
+            // 淡入新文字
+            storyTextElement.classList.add("show");
+
+            // 如果是最后一句，触发特殊烟花效果
+            if (currentTextIndex === fireworkTexts.length - 1) {
+              // 创建爱心和星星烟花
+              for (let i = 0; i < 3; i++) {
+                setTimeout(() => createHeartFirework(), i * 800);
+                setTimeout(() => createStarFirework(), i * 800 + 400);
+              }
+              
+              // 2秒后触发底部齐射
+              setTimeout(() => {
+                createBottomRowFireworks();
+              }, 2000);
+            } else {
+              // 普通烟花
+              createMultipleFireworks(5);
+            }
+
+            currentTextIndex++;
+
+            // 每段文字显示5秒后显示下一段
+            textDisplayTimeout = setTimeout(() => {
+              showNextText();
+            }, 5000);
+          }, 1000);
+        } else {
+          // 文字播放完毕，隐藏文字，继续播放烟花
+          const storyTextElement = document.getElementById("storyText");
+          storyTextElement.classList.remove("show");
+          // 不显示finalMessage，只是持续播放烟花
+        }
+      }
+
+      // 主动画循环
+      function animate() {
+        animationId = requestAnimationFrame(animate);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let star of stars) {
+          star.update();
+          star.draw();
+        }
+
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+          shootingStars[i].update();
+          shootingStars[i].draw();
+
+          if (shootingStars[i].isDead()) {
+            shootingStars.splice(i, 1);
+          }
+        }
+
+        if (Math.random() < 0.015 && shootingStars.length < 5) {
+          shootingStars.push(new ShootingStar());
+        }
+
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+          fireworks[i].update();
+          fireworks[i].draw();
+
+          if (fireworks[i].isDead()) {
+            fireworks.splice(i, 1);
+          }
+        }
+
+        // 持续创建烟花（永不停止）
+        if (hasStarted) {
+          if (Math.random() < 0.06 && fireworks.length < 10) {
+            createRandomFirework();
+          }
+
+          if (Math.random() < 0.03) {
+            createMultipleFireworks(2);
+          }
+        }
+      }
+
+      // 开始表演
+      function startShow() {
+        fireworks = [];
+        currentTextIndex = 0;
+
+        // 清除之前的定时器
+        if (textDisplayTimeout) {
+          clearTimeout(textDisplayTimeout);
+        }
+
+        // 重置文字显示
+        const storyTextElement = document.getElementById("storyText");
+        storyTextElement.classList.remove("show");
+        storyTextElement.textContent = "";
+
+        initStars();
+        createMultipleFireworks(5);
+
+        // 2秒后开始显示第一段文字
+        setTimeout(() => {
+          showNextText();
+        }, 2000);
+
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+        animate();
+      }
+
+      // 开场按钮事件
+      document
+        .getElementById("startButton")
+        .addEventListener("click", function () {
+          if (hasStarted) return;
+          hasStarted = true;
+
+          // 隐藏开场页面
+          document.getElementById("startScreen").classList.add("hidden");
+
+          // 显示控制按钮
+          setTimeout(() => {
+            document.getElementById("controls").classList.add("show");
+          }, 1000);
+
+          // 开始播放音乐（默认开启）
+          if (!isMuted) {
+            playMusic();
+          }
+
+          // 开始烟花秀
+          startShow();
+        });
+
+      // 重新播放按钮
+      document
+        .getElementById("replayBtn")
+        .addEventListener("click", function () {
+          startShow();
+        });
+
+      // 切换音乐按钮
+      document
+        .getElementById("musicBtn")
+        .addEventListener("click", function () {
+          switchMusic();
+        });
+
+      // 声音图标点击事件
+      document
+        .getElementById("soundToggle")
+        .addEventListener("click", function () {
+          toggleSound();
+        });
+
+      // 初始化星空
+      initStars();
+
+      // 开场页面的星空动画
+      function startScreenAnimate() {
+        if (!hasStarted) {
+          requestAnimationFrame(startScreenAnimate);
+
+          ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          for (let star of stars) {
+            star.update();
+            star.draw();
+          }
+
+          if (Math.random() < 0.01 && shootingStars.length < 3) {
+            shootingStars.push(new ShootingStar());
+          }
+
+          for (let i = shootingStars.length - 1; i >= 0; i--) {
+            shootingStars[i].update();
+            shootingStars[i].draw();
+
+            if (shootingStars[i].isDead()) {
+              shootingStars.splice(i, 1);
+            }
+          }
+        }
+      }
+
+      startScreenAnimate();
+    </script>
+  </body>
+</html>

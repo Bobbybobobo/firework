@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -62,7 +62,8 @@
           text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
         }
         50% {
-          text-shadow: 0 0 30px rgba(255, 255, 255, 0.8),
+          text-shadow:
+            0 0 30px rgba(255, 255, 255, 0.8),
             0 0 40px rgba(255, 182, 193, 0.6);
         }
       }
@@ -126,8 +127,10 @@
         font-size: 2rem;
         font-weight: normal;
         color: #fff;
-        text-shadow: 0 0 10px rgba(255, 255, 255, 0.8),
-          0 0 20px rgba(135, 206, 250, 0.6), 0 0 30px rgba(135, 206, 250, 0.4),
+        text-shadow:
+          0 0 10px rgba(255, 255, 255, 0.8),
+          0 0 20px rgba(135, 206, 250, 0.6),
+          0 0 30px rgba(135, 206, 250, 0.4),
           2px 2px 4px rgba(0, 0, 0, 0.5);
         opacity: 0;
         text-align: left;
@@ -162,8 +165,10 @@
         background-size: 300% 300%;
         -webkit-background-clip: text;
         background-clip: text;
-        text-shadow: 0 0 30px rgba(255, 140, 0, 1),
-          0 0 60px rgba(255, 165, 0, 0.9), 0 0 90px rgba(255, 99, 71, 0.7);
+        text-shadow:
+          0 0 30px rgba(255, 140, 0, 1),
+          0 0 60px rgba(255, 165, 0, 0.9),
+          0 0 90px rgba(255, 99, 71, 0.7);
         opacity: 0;
         animation: gradientShift 3s ease-in-out infinite;
         letter-spacing: 0.1em;
@@ -338,7 +343,7 @@
     <div id="finalMessage"></div>
     <div id="musicIndicator">
       <span id="soundToggle">🔊</span>
-      <span id="musicName">🏰 天空之城</span>
+      <span id="musicName">⛰️ 一程山路</span>
     </div>
 
     <div id="controls">
@@ -349,10 +354,13 @@
     <script>
       // 音乐列表
       const musicList = [
-        { name: "天空之城", file: "天空之城.mp3", icon: "🏰" },
+        { name: "一程山路", file: "一程山路.mp3", icon: "⛰️" },
         { name: "Marry You", file: "Marry_You.mp3", icon: "💍" },
-        { name: "乌兰巴托的夜", file: "乌兰巴托的夜.m4a", icon: "🌙" },
         { name: "七里香", file: "七里香.mp3", icon: "🌸" },
+        { name: "你像风一样出现", file: "你像风一样出现.mp3", icon: "🍃" },
+        { name: "Let It Out", file: "Let_It_Out.mp3", icon: "🎤" },
+        { name: "乌兰巴托的夜", file: "乌兰巴托的夜.m4a", icon: "🌙" },
+        { name: "天空之城", file: "天空之城.mp3", icon: "🏰" },
         { name: "愿你", file: "愿你.mp3", icon: "💫" },
         { name: "故乡的原风景", file: "故乡的原风景.mp3", icon: "🏞️" },
         { name: "Against the Tide", file: "Against_the_Tide.mp3", icon: "🌊" },
@@ -360,22 +368,17 @@
 
       let currentMusicIndex = 0;
       let audio = new Audio();
+      audio.preload = "metadata";
       let isPlaying = false;
       let isMuted = false;
 
-      // 预加载所有音乐文件
-      const audioCache = {};
-      function preloadAudio() {
-        musicList.forEach((music, index) => {
-          const audioElement = new Audio();
-          audioElement.src = music.file;
-          audioElement.preload = "auto";
-          audioCache[index] = audioElement;
-        });
-      }
+      function loadCurrentMusic() {
+        if (audio.dataset.musicIndex === String(currentMusicIndex)) return;
 
-      // 页面加载时预加载音频
-      window.addEventListener("load", preloadAudio);
+        audio.src = musicList[currentMusicIndex].file;
+        audio.dataset.musicIndex = String(currentMusicIndex);
+        audio.load();
+      }
 
       // 故事文字内容（8段，严格按照排版）
       const fireworkTexts = [
@@ -411,6 +414,8 @@
       let shootingStars = [];
       let animationId = null;
       let hasStarted = false;
+      const MAX_ACTIVE_FIREWORKS = 14;
+      const MAX_FINALE_FIREWORKS = 64;
 
       // 星星类
       class Star {
@@ -468,7 +473,7 @@
           gradient.addColorStop(0, `rgba(255, 255, 255, ${this.alpha})`);
           gradient.addColorStop(
             0.5,
-            `rgba(200, 200, 255, ${this.alpha * 0.6})`
+            `rgba(200, 200, 255, ${this.alpha * 0.6})`,
           );
           gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
 
@@ -571,6 +576,10 @@
           this.speed = 2.5;
           this.acceleration = 1.05;
           this.brightness = Math.random() * 30 + 70;
+          this.hue = Math.random() * 360;
+          this.trailStartColor = `hsl(${this.hue}, 100%, 30%)`;
+          this.trailEndColor = `hsl(${this.hue}, 100%, ${this.brightness}%)`;
+          this.glowColor = `hsl(${this.hue}, 100%, ${this.brightness}%)`;
           this.targetRadius = 1;
           this.exploded = false;
           this.particles = [];
@@ -600,7 +609,7 @@
               this.sx,
               this.sy,
               this.x + vx,
-              this.y + vy
+              this.y + vy,
             );
 
             if (this.distanceTraveled >= this.distanceToTarget) {
@@ -623,7 +632,7 @@
           this.exploded = true;
 
           // 爱心形状烟花
-          if (this.shape === 'heart') {
+          if (this.shape === "heart") {
             const particleCount = 80;
             const hue = 0; // 红色/粉色
 
@@ -631,12 +640,17 @@
               const t = (i / particleCount) * Math.PI * 2;
               // 爱心参数方程
               const x = 16 * Math.pow(Math.sin(t), 3);
-              const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
-              
+              const y = -(
+                13 * Math.cos(t) -
+                5 * Math.cos(2 * t) -
+                2 * Math.cos(3 * t) -
+                Math.cos(4 * t)
+              );
+
               const scale = 0.3;
               const vx = x * scale;
               const vy = y * scale;
-              
+
               const color = `hsl(${hue + Math.random() * 30}, 100%, ${Math.random() * 20 + 60}%)`;
               const size = Math.random() * 3 + 2;
               const life = Math.random() * 40 + 60;
@@ -649,38 +663,42 @@
                 color,
                 size,
                 life,
-                this
+                this,
               );
               particle.gravity = 0.05;
               this.particles.push(particle);
             }
           }
           // 星星形状烟花
-          else if (this.shape === 'star') {
+          else if (this.shape === "star") {
             const particleCount = 100;
             const hue = 50; // 金黄色
 
             // 五角星的5个角
             for (let i = 0; i < particleCount; i++) {
               const angle = (i / particleCount) * Math.PI * 2;
-              const starAngle = Math.floor(angle / (Math.PI * 2 / 5)) * (Math.PI * 2 / 5);
-              const nextStarAngle = starAngle + (Math.PI * 2 / 5);
-              
+              const starAngle =
+                Math.floor(angle / ((Math.PI * 2) / 5)) * ((Math.PI * 2) / 5);
+              const nextStarAngle = starAngle + (Math.PI * 2) / 5;
+
               // 在五角星的边缘分布
-              const t = (angle - starAngle) / (Math.PI * 2 / 5);
+              const t = (angle - starAngle) / ((Math.PI * 2) / 5);
               const outerRadius = 4;
               const innerRadius = 1.5;
-              
+
               let radius;
               if (t < 0.5) {
                 radius = outerRadius;
               } else {
-                radius = innerRadius + (outerRadius - innerRadius) * Math.cos((t - 0.5) * Math.PI * 2);
+                radius =
+                  innerRadius +
+                  (outerRadius - innerRadius) *
+                    Math.cos((t - 0.5) * Math.PI * 2);
               }
-              
+
               const vx = Math.cos(angle) * radius;
               const vy = Math.sin(angle) * radius;
-              
+
               const color = `hsl(${hue + Math.random() * 30}, 100%, ${Math.random() * 20 + 70}%)`;
               const size = Math.random() * 3 + 2;
               const life = Math.random() * 40 + 60;
@@ -693,7 +711,7 @@
                 color,
                 size,
                 life,
-                this
+                this,
               );
               particle.gravity = 0.05;
               this.particles.push(particle);
@@ -721,7 +739,7 @@
                 color,
                 size,
                 life,
-                this
+                this,
               );
               particle.gravity = 0.06;
               this.particles.push(particle);
@@ -740,7 +758,7 @@
               const life = Math.random() * 40 + 55;
 
               this.particles.push(
-                new Particle(this.tx, this.ty, vx, vy, color, size, life, this)
+                new Particle(this.tx, this.ty, vx, vy, color, size, life, this),
               );
             }
 
@@ -754,7 +772,7 @@
               const life = Math.random() * 20 + 35;
 
               this.particles.push(
-                new Particle(this.tx, this.ty, vx, vy, color, size, life, this)
+                new Particle(this.tx, this.ty, vx, vy, color, size, life, this),
               );
             }
           }
@@ -768,35 +786,28 @@
               this.coordinates[this.coordinates.length - 1][0],
               this.coordinates[this.coordinates.length - 1][1],
               this.x,
-              this.y
+              this.y,
             );
-            gradient.addColorStop(0, `hsl(${Math.random() * 360}, 100%, 30%)`);
-            gradient.addColorStop(
-              1,
-              `hsl(${Math.random() * 360}, 100%, ${this.brightness}%)`
-            );
+            gradient.addColorStop(0, this.trailStartColor);
+            gradient.addColorStop(1, this.trailEndColor);
 
             ctx.strokeStyle = gradient;
             ctx.lineWidth = 3;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = `hsl(${Math.random() * 360}, 100%, ${
-              this.brightness
-            }%)`;
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = this.glowColor;
 
             ctx.beginPath();
             ctx.moveTo(
               this.coordinates[this.coordinates.length - 1][0],
-              this.coordinates[this.coordinates.length - 1][1]
+              this.coordinates[this.coordinates.length - 1][1],
             );
             ctx.lineTo(this.x, this.y);
             ctx.stroke();
 
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.targetRadius, 0, Math.PI * 2);
-            ctx.fillStyle = `hsl(${Math.random() * 360}, 100%, ${
-              this.brightness
-            }%)`;
-            ctx.shadowBlur = 15;
+            ctx.fillStyle = this.glowColor;
+            ctx.shadowBlur = 12;
             ctx.fill();
             ctx.restore();
           } else {
@@ -814,7 +825,11 @@
       // 初始化星空
       function initStars() {
         stars = [];
-        for (let i = 0; i < 200; i++) {
+        const starCount = Math.min(
+          180,
+          Math.max(80, Math.floor((canvas.width * canvas.height) / 9000)),
+        );
+        for (let i = 0; i < starCount; i++) {
           stars.push(new Star());
         }
       }
@@ -823,13 +838,7 @@
       function playMusic() {
         if (isMuted) return;
 
-        // 使用预加载的音频
-        if (audioCache[currentMusicIndex]) {
-          audio = audioCache[currentMusicIndex];
-        } else {
-          audio.src = musicList[currentMusicIndex].file;
-        }
-
+        loadCurrentMusic();
         audio.loop = true;
         audio
           .play()
@@ -854,10 +863,10 @@
           audio.pause();
           audio.currentTime = 0;
         }
-        
+
         // 切换到下一首
         currentMusicIndex = (currentMusicIndex + 1) % musicList.length;
-        
+
         // 如果不是静音状态，播放新音乐
         if (!isMuted) {
           playMusic();
@@ -878,12 +887,16 @@
           soundToggle.textContent = "🔇";
         } else {
           // 继续播放音乐
-          audio.play().then(() => {
-            isPlaying = true;
-            soundToggle.textContent = "🔊";
-          }).catch((e) => {
-            console.log("音乐播放失败:", e);
-          });
+          loadCurrentMusic();
+          audio
+            .play()
+            .then(() => {
+              isPlaying = true;
+              soundToggle.textContent = "🔊";
+            })
+            .catch((e) => {
+              console.log("音乐播放失败:", e);
+            });
         }
       }
 
@@ -896,8 +909,14 @@
         }
       }
 
+      function canCreateFirework(limit = MAX_ACTIVE_FIREWORKS) {
+        return fireworks.length < limit;
+      }
+
       // 创建烟花
-      function createRandomFirework() {
+      function createRandomFirework(limit = MAX_ACTIVE_FIREWORKS) {
+        if (!canCreateFirework(limit)) return null;
+
         const startX = Math.random() * canvas.width;
         const startY = canvas.height;
         const endX = Math.random() * canvas.width;
@@ -909,32 +928,36 @@
       }
 
       function createHeartFirework() {
+        if (!canCreateFirework(MAX_FINALE_FIREWORKS)) return null;
+
         const startX = Math.random() * canvas.width;
         const startY = canvas.height;
         const endX = Math.random() * canvas.width;
         const endY = Math.random() * canvas.height * 0.4 + canvas.height * 0.2;
 
         const firework = new Firework(startX, startY, endX, endY);
-        firework.shape = 'heart';
+        firework.shape = "heart";
         fireworks.push(firework);
         return firework;
       }
 
       function createStarFirework() {
+        if (!canCreateFirework(MAX_FINALE_FIREWORKS)) return null;
+
         const startX = Math.random() * canvas.width;
         const startY = canvas.height;
         const endX = Math.random() * canvas.width;
         const endY = Math.random() * canvas.height * 0.4 + canvas.height * 0.2;
 
         const firework = new Firework(startX, startY, endX, endY);
-        firework.shape = 'star';
+        firework.shape = "star";
         fireworks.push(firework);
         return firework;
       }
 
-      function createMultipleFireworks(count = 3) {
+      function createMultipleFireworks(count = 3, limit = MAX_ACTIVE_FIREWORKS) {
         for (let i = 0; i < count; i++) {
-          setTimeout(() => createRandomFirework(), i * 150);
+          setTimeout(() => createRandomFirework(limit), i * 150);
         }
       }
 
@@ -947,6 +970,8 @@
         // 第一波
         for (let i = 0; i < fireworkCount; i++) {
           setTimeout(() => {
+            if (!canCreateFirework(MAX_FINALE_FIREWORKS)) return;
+
             const startX = spacing * (i + 1);
             const startY = canvas.height;
             const endX = startX + (Math.random() - 0.5) * 100;
@@ -962,6 +987,8 @@
         setTimeout(() => {
           for (let i = 0; i < Math.floor(fireworkCount * 0.9); i++) {
             setTimeout(() => {
+              if (!canCreateFirework(MAX_FINALE_FIREWORKS)) return;
+
               const startX = spacing * (i + 1) + (Math.random() - 0.5) * 60;
               const startY = canvas.height;
               const endX = startX + (Math.random() - 0.5) * 120;
@@ -978,6 +1005,8 @@
         setTimeout(() => {
           for (let i = 0; i < Math.floor(fireworkCount * 0.8); i++) {
             setTimeout(() => {
+              if (!canCreateFirework(MAX_FINALE_FIREWORKS)) return;
+
               const startX = Math.random() * screenWidth;
               const startY = canvas.height;
               const endX = Math.random() * screenWidth;
@@ -1013,7 +1042,7 @@
                 setTimeout(() => createHeartFirework(), i * 800);
                 setTimeout(() => createStarFirework(), i * 800 + 400);
               }
-              
+
               // 2秒后触发底部齐射
               setTimeout(() => {
                 createBottomRowFireworks();
@@ -1074,11 +1103,11 @@
 
         // 持续创建烟花（永不停止）
         if (hasStarted) {
-          if (Math.random() < 0.06 && fireworks.length < 10) {
+          if (Math.random() < 0.06 && canCreateFirework()) {
             createRandomFirework();
           }
 
-          if (Math.random() < 0.03) {
+          if (Math.random() < 0.03 && canCreateFirework()) {
             createMultipleFireworks(2);
           }
         }
